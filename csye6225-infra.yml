@@ -17,6 +17,12 @@ Parameters:
     Description: "CIDR block for Subnet3"
     Type: String
     Default: "10.0.3.0/24"
+  AMI:
+    Description: "AMI for Instance"
+    Type: String
+  KeyName:
+    Description: "Key Name for Instance"
+    Type: String
 Resources:
   myVPC:
     Type: AWS::EC2::VPC
@@ -69,6 +75,7 @@ Resources:
       InternetGatewayId: !Ref myInternetGateway
 
   myRouteTable:
+    DependsOn: myVPCGatewayAttachment
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref myVPC
@@ -77,7 +84,7 @@ Resources:
         Value: !Ref AWS::StackName
   myRoute:
     Type: AWS::EC2::Route
-    DependsOn: myInternetGateway
+    DependsOn: myVPCGatewayAttachment
     Properties:
        RouteTableId:
          Ref: myRouteTable
@@ -99,6 +106,47 @@ Resources:
     Properties:
       SubnetId: !Ref mySubnet3
       RouteTableId: !Ref myRouteTable
+  application:
+   Type: 'AWS::EC2::SecurityGroup'
+   Properties:
+      GroupDescription: Base Security Group
+      SecurityGroupIngress:
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 22
+           ToPort: 22
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 80
+           ToPort: 80
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 443
+           ToPort: 443
+         - IpProtocol: tcp
+           CidrIp: 0.0.0.0/0
+           FromPort: 3000
+           ToPort: 3000
+      VpcId: !Ref myVPC 
+  Ec2Instance: 
+   Type: AWS::EC2::Instance
+   Properties: 
+    ImageId: !Ref AMI
+    KeyName: !Ref KeyName
+    InstanceType: "t2.micro"
+    BlockDeviceMappings: 
+      - DeviceName: "/dev/xvda"
+        Ebs: 
+          VolumeType: "gp2"
+          DeleteOnTermination: "false"
+          VolumeSize: "20"
+    NetworkInterfaces:
+      - AssociatePublicIpAddress: "true"
+        DeleteOnTermination: "true"
+        SubnetId: !Ref mySubnet1
+        DeviceIndex: "0"
+        GroupSet:
+         - !Ref application
 Outputs:
     VpcId:
       Description: The VPC ID

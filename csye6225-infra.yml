@@ -335,46 +335,6 @@ Resources:
       DBParameterGroupName: !Ref RDSDBParameterGroup
       VPCSecurityGroups:
         - !GetAtt database.GroupId
-  # Ec2Instance: 
-  #  Type: AWS::EC2::Instance
-  #  Properties: 
-  #   ImageId: !Ref AMI
-  #   KeyName: !Ref KeyName
-  #   InstanceType: "t2.micro"
-  #   BlockDeviceMappings: 
-  #     - DeviceName: "/dev/xvda"
-  #       Ebs: 
-  #         VolumeType: "gp2"
-  #         DeleteOnTermination: "false"
-  #         VolumeSize: "20"
-  #   NetworkInterfaces:
-  #     - AssociatePublicIpAddress: "true"
-  #       DeleteOnTermination: "true"
-  #       SubnetId: !Ref mySubnet1
-  #       DeviceIndex: "0"
-  #       GroupSet:
-  #        - !Ref application
-  #   IamInstanceProfile: !Ref RootInstanceProfile
-  #   UserData:
-      # Fn::Base64: 
-      #   !Sub |
-      #     #!/bin/bash
-      #     echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/profile
-      #     echo export DB_USER=${DBUsername} >> /etc/profile
-      #     echo export DB_PASSWORD=${DBPassword} >> /etc/profile
-      #     echo export DB_NAME="csye6225" >> /etc/profile
-      #     echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/profile
-      #     echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/environment
-      #     echo export DB_USER=${DBUsername} >> /etc/environment
-      #     echo export DB_PASSWORD=${DBPassword} >> /etc/environment
-      #     echo export DB_NAME="csye6225" >> /etc/environment
-      #     echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
-      #     sudo su root
-      #     sudo pm2 restart all --update-env
-      #     sudo pm2 save
-      #     sudo systemctl daemon-reload
-      #     cd /home/ec2-user/node-app/
-      #     sudo systemctl restart node-service.service
 
   asgLaunchConfig:
     Type: AWS::EC2::LaunchTemplate
@@ -396,8 +356,6 @@ Resources:
             Groups:
               - !GetAtt application.GroupId
             DeleteOnTermination: true
-        # SecurityGroupIds:
-        #   - !GetAtt application.GroupId
         IamInstanceProfile:
           Arn: !GetAtt
             - RootInstanceProfile
@@ -438,8 +396,6 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref asgLaunchConfig
         Version: !GetAtt asgLaunchConfig.LatestVersionNumber
-      # LoadBalancerNames:
-      #   - String
       MaxSize: '5'
       MinSize: '1'
       NewInstancesProtectedFromScaleIn: false
@@ -457,15 +413,6 @@ Resources:
         - !Ref mySubnet2
         - !Ref mySubnet3
 
-  # asgCPUPolicy:
-  #   Type: AWS::AutoScaling::ScalingPolicy
-  #   Properties:
-  #     AutoScalingGroupName: !Ref asgWebApp
-  #     PolicyType: TargetTrackingScaling
-  #     TargetTrackingConfiguration:
-  #       PredefinedMetricSpecification:
-  #         PredefinedMetricType: ASGAverageCPUUtilization
-  #       TargetValue: 5.0
   asgScalingPolicyHigh: 
     Type: AWS::AutoScaling::ScalingPolicy
     Properties: 
@@ -625,18 +572,6 @@ Resources:
               - !Sub arn:aws:s3:::${S3Bucket}/*
       Roles:
         - !Ref myIAMRole
-  # myIAMRolePolicy:
-  #   Type: 'AWS::IAM::Policy'
-  #   Properties:
-  #     PolicyName: RoleCreation
-  #     PolicyDocument:
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Effect: Allow
-  #           Action: 
-  #             - ec2:RunInstances
-  #             - ec2:AssociateIamInstanceProfile
-  #             - ec2:ReplaceIamInstanceProfileAssociation
       
   RootInstanceProfile: 
     Type: "AWS::IAM::InstanceProfile"

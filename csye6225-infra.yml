@@ -134,6 +134,7 @@ Resources:
   
   myVPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn: myInternetGateway
     Properties:
       VpcId:
         Ref: myVPC
@@ -208,29 +209,61 @@ Resources:
    Type: 'AWS::EC2::SecurityGroup'
    Properties:
       GroupDescription: Base Security Group
+      # SecurityGroupIngress:
+      #    - IpProtocol: tcp
+      #      CidrIp: 0.0.0.0/0
+      #      FromPort: 22
+      #      ToPort: 22
+      #    - IpProtocol: tcp
+      #      CidrIp: 0.0.0.0/0
+      #      FromPort: 80
+      #      ToPort: 80
+      #    - IpProtocol: tcp
+      #      CidrIp: 0.0.0.0/0
+      #      FromPort: 443
+      #      ToPort: 443
+      #    - IpProtocol: tcp
+      #      CidrIp: 0.0.0.0/0
+      #      FromPort: 3000
+      #      ToPort: 3000
+      VpcId: !Ref myVPC 
+  applicationSecurityIngress1:
+   Type: 'AWS::EC2::SecurityGroupIngress'
+   Properties:
+      GroupId: !GetAtt application.GroupId
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId: !GetAtt loadbalancer.GroupId
+  applicationSecurityIngress2:
+   Type: 'AWS::EC2::SecurityGroupIngress'
+   Properties:
+      GroupId: !GetAtt application.GroupId
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+      SourceSecurityGroupId: !GetAtt loadbalancer.GroupId
+  database:
+   Type: 'AWS::EC2::SecurityGroup'
+   Properties:
+      GroupDescription: Database Security Group
+      VpcId: !Ref myVPC
+
+  loadbalancer:
+   Type: 'AWS::EC2::SecurityGroup'
+   Properties:
+      GroupDescription: loadbalancer Security Group
+      VpcId: !Ref myVPC
       SecurityGroupIngress:
-         - IpProtocol: tcp
-           CidrIp: 0.0.0.0/0
-           FromPort: 22
-           ToPort: 22
-         - IpProtocol: tcp
-           CidrIp: 0.0.0.0/0
-           FromPort: 80
-           ToPort: 80
          - IpProtocol: tcp
            CidrIp: 0.0.0.0/0
            FromPort: 443
            ToPort: 443
          - IpProtocol: tcp
            CidrIp: 0.0.0.0/0
-           FromPort: 3000
-           ToPort: 3000
-      VpcId: !Ref myVPC 
-  database:
-   Type: 'AWS::EC2::SecurityGroup'
-   Properties:
-      GroupDescription: Database Security Group
-      VpcId: !Ref myVPC
+           FromPort: 80
+           ToPort: 80
+
   SGBaseIngress:
    Type: 'AWS::EC2::SecurityGroupIngress'
    Properties:
@@ -299,48 +332,258 @@ Resources:
       MasterUserPassword: !Ref DBPassword
       PubliclyAccessible: 'false'
       DBSubnetGroupName: !Ref MyDBSubnetGroup
+      DBParameterGroupName: !Ref RDSDBParameterGroup
       VPCSecurityGroups:
         - !GetAtt database.GroupId
-  Ec2Instance: 
-   Type: AWS::EC2::Instance
-   Properties: 
-    ImageId: !Ref AMI
-    KeyName: !Ref KeyName
-    InstanceType: "t2.micro"
-    BlockDeviceMappings: 
-      - DeviceName: "/dev/xvda"
-        Ebs: 
-          VolumeType: "gp2"
-          DeleteOnTermination: "false"
-          VolumeSize: "20"
-    NetworkInterfaces:
-      - AssociatePublicIpAddress: "true"
-        DeleteOnTermination: "true"
-        SubnetId: !Ref mySubnet1
-        DeviceIndex: "0"
-        GroupSet:
-         - !Ref application
-    IamInstanceProfile: !Ref RootInstanceProfile
-    UserData:
-      Fn::Base64: 
-        !Sub |
-          #!/bin/bash
-          echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/profile
-          echo export DB_USER=${DBUsername} >> /etc/profile
-          echo export DB_PASSWORD=${DBPassword} >> /etc/profile
-          echo export DB_NAME="csye6225" >> /etc/profile
-          echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/profile
-          echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/environment
-          echo export DB_USER=${DBUsername} >> /etc/environment
-          echo export DB_PASSWORD=${DBPassword} >> /etc/environment
-          echo export DB_NAME="csye6225" >> /etc/environment
-          echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
-          sudo su root
-          sudo pm2 restart all --update-env
-          sudo pm2 save
-          sudo systemctl daemon-reload
-          cd /home/ec2-user/node-app/
-          sudo systemctl restart node-service.service
+  # Ec2Instance: 
+  #  Type: AWS::EC2::Instance
+  #  Properties: 
+  #   ImageId: !Ref AMI
+  #   KeyName: !Ref KeyName
+  #   InstanceType: "t2.micro"
+  #   BlockDeviceMappings: 
+  #     - DeviceName: "/dev/xvda"
+  #       Ebs: 
+  #         VolumeType: "gp2"
+  #         DeleteOnTermination: "false"
+  #         VolumeSize: "20"
+  #   NetworkInterfaces:
+  #     - AssociatePublicIpAddress: "true"
+  #       DeleteOnTermination: "true"
+  #       SubnetId: !Ref mySubnet1
+  #       DeviceIndex: "0"
+  #       GroupSet:
+  #        - !Ref application
+  #   IamInstanceProfile: !Ref RootInstanceProfile
+  #   UserData:
+      # Fn::Base64: 
+      #   !Sub |
+      #     #!/bin/bash
+      #     echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/profile
+      #     echo export DB_USER=${DBUsername} >> /etc/profile
+      #     echo export DB_PASSWORD=${DBPassword} >> /etc/profile
+      #     echo export DB_NAME="csye6225" >> /etc/profile
+      #     echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/profile
+      #     echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/environment
+      #     echo export DB_USER=${DBUsername} >> /etc/environment
+      #     echo export DB_PASSWORD=${DBPassword} >> /etc/environment
+      #     echo export DB_NAME="csye6225" >> /etc/environment
+      #     echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
+      #     sudo su root
+      #     sudo pm2 restart all --update-env
+      #     sudo pm2 save
+      #     sudo systemctl daemon-reload
+      #     cd /home/ec2-user/node-app/
+      #     sudo systemctl restart node-service.service
+
+  asgLaunchConfig:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub '${AWS::StackName}-launch-template'
+      LaunchTemplateData:
+        BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: "gp2"
+            DeleteOnTermination: true
+        ImageId: !Ref AMI
+        InstanceType: t2.micro
+        KeyName: !Ref KeyName
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            Groups:
+              - !GetAtt application.GroupId
+            DeleteOnTermination: true
+        # SecurityGroupIds:
+        #   - !GetAtt application.GroupId
+        IamInstanceProfile:
+          Arn: !GetAtt
+            - RootInstanceProfile
+            - Arn
+        UserData:
+          Fn::Base64: 
+            !Sub |
+              #!/bin/bash
+              echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/profile
+              echo export DB_USER=${DBUsername} >> /etc/profile
+              echo export DB_PASSWORD=${DBPassword} >> /etc/profile
+              echo export DB_NAME="csye6225" >> /etc/profile
+              echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/profile
+              echo export DB_HOST=${MyDB.Endpoint.Address} >> /etc/environment
+              echo export DB_USER=${DBUsername} >> /etc/environment
+              echo export DB_PASSWORD=${DBPassword} >> /etc/environment
+              echo export DB_NAME="csye6225" >> /etc/environment
+              echo export S3_BUCKET_NAME=${S3Bucket} >> /etc/environment
+              sudo su root
+              sudo pm2 restart all --update-env
+              sudo pm2 save
+              sudo systemctl daemon-reload
+              cd /home/ec2-user/node-app/
+              sudo systemctl restart node-service.service
+      
+  asgWebApp:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub ${AWS::StackName}-asg
+      AvailabilityZones:
+        - !Select [ 0, !GetAZs ]
+        - !Select [ 1, !GetAZs ]
+        - !Select [ 2, !GetAZs ]
+      Cooldown: '60'
+      DesiredCapacity: '1'
+      HealthCheckGracePeriod: 90
+      HealthCheckType: EC2
+      LaunchTemplate:
+        LaunchTemplateId: !Ref asgLaunchConfig
+        Version: !GetAtt asgLaunchConfig.LatestVersionNumber
+      # LoadBalancerNames:
+      #   - String
+      MaxSize: '5'
+      MinSize: '1'
+      NewInstancesProtectedFromScaleIn: false
+      Tags:
+        - Key: Application
+          Value: WebApp
+          PropagateAtLaunch: "true"
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-asg
+          PropagateAtLaunch: "true"
+      TargetGroupARNs:
+        - !Ref loadBalancerTargetGroup
+      VPCZoneIdentifier:
+        - !Ref mySubnet1
+        - !Ref mySubnet2
+        - !Ref mySubnet3
+
+  # asgCPUPolicy:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Properties:
+  #     AutoScalingGroupName: !Ref asgWebApp
+  #     PolicyType: TargetTrackingScaling
+  #     TargetTrackingConfiguration:
+  #       PredefinedMetricSpecification:
+  #         PredefinedMetricType: ASGAverageCPUUtilization
+  #       TargetValue: 5.0
+  asgScalingPolicyHigh: 
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties: 
+      AdjustmentType: "ChangeInCapacity"
+      PolicyType: "SimpleScaling"
+      Cooldown: "60"
+      AutoScalingGroupName: !Ref asgWebApp
+      ScalingAdjustment: 1
+  asgScalingPolicyLow: 
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties: 
+      AdjustmentType: "ChangeInCapacity"
+      PolicyType: "SimpleScaling"
+      Cooldown: "60"
+      AutoScalingGroupName: !Ref asgWebApp
+      ScalingAdjustment: -1
+
+  cloudAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Scale-up if CPU>5%"
+      MetricName : CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 120
+      Threshold: 5
+      EvaluationPeriods: 2
+      AlarmActions:
+        - !Ref asgScalingPolicyHigh
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref asgWebApp
+      ComparisonOperator: GreaterThanThreshold
+
+  cloudAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Scale-up if CPU < 3%"
+      MetricName : CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 120
+      Threshold: 3
+      EvaluationPeriods: 2
+      AlarmActions:
+        - !Ref asgScalingPolicyLow
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref asgWebApp
+      ComparisonOperator: LessThanThreshold
+
+  appLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      IpAddressType: ipv4
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '60'
+      Name: !Sub ${AWS::StackName}-load-balancer
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref loadbalancer
+      Subnets:
+        - !Ref mySubnet1
+        - !Ref mySubnet2
+        - !Ref mySubnet3
+      Tags:
+        - Key: Application
+          Value: WebApp
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-load-balancer
+      Type: application
+  
+  LoadBalancerAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Join ['.', [!Ref environment, 'sriratnaakkineni','me.']]
+      Comment : "Alias for loadbalancer"
+      Name: !Join ['.', [!Ref environment, 'sriratnaakkineni','me.']]
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt appLoadBalancer.DNSName
+        HostedZoneId: !GetAtt appLoadBalancer.CanonicalHostedZoneID
+        EvaluateTargetHealth: false
+  
+  loadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 90
+      HealthCheckPath: '/'
+      HealthCheckPort: '3000'
+      HealthCheckProtocol: 'HTTP'
+      HealthCheckTimeoutSeconds: 60
+      HealthyThresholdCount: 2
+      IpAddressType: ipv4
+      Name: !Sub ${AWS::StackName}-lb-tg
+      Port: 3000
+      Protocol: 'HTTP'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-lb-tg
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '20'
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref myVPC
+
+  loadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref loadBalancerTargetGroup
+      LoadBalancerArn: !Ref appLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
   myIAMRole: 
     Type: "AWS::IAM::Role"
     Properties: 
@@ -398,6 +641,7 @@ Resources:
   RootInstanceProfile: 
     Type: "AWS::IAM::InstanceProfile"
     Properties: 
+      InstanceProfileName: RootInstanceProfile
       Path: "/"
       Roles: 
         - !Ref myIAMRole

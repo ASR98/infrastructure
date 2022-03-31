@@ -657,7 +657,7 @@ Resources:
               - codedeploy:CreateDeployment
               - codedeploy:GetDeployment
             Resource:
-              - !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:${CodeDeployDeploymentGroup}:${CodeDeployApplicationName}/*
+              - !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${CodeDeployApplicationName}/${CodeDeploymentGroupName}
           - Effect: Allow
             Action:
               - codedeploy:GetDeploymentConfig

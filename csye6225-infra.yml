@@ -69,6 +69,12 @@ Parameters:
   LambdaBucketName:
     Description: "Lambda Bucket name"
     Type: String
+  CertificateARN:
+    Description: "AWS Certificate"
+    Type: String
+  AccountId:
+    Description: "Account Id"
+    Type: String
   
 Resources:
   myVPC:
@@ -535,7 +541,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: 'arn:aws:acm:us-east-1:277616309531:certificate/a13027e1-8bb0-4073-90ed-328ab0dad256'
+        - CertificateArn: !Ref CertificateARN
       SslPolicy: "ELBSecurityPolicy-TLS-1-2-Ext-2018-06"
 
   myIAMRole: 

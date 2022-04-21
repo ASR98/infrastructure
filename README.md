@@ -13,3 +13,5 @@
     aws cloudformation delete-stack --stack-name sample
 
 Note: You can replace 'sample' and Parameter Values with required values.
+
+aws acm --profile demo import-certificate --certificate fileb:///mnt/d/prod_sriratnaakkineni_me/prod_sriratnaakkineni_me.crt --certificate-chain fileb:///mnt/d/prod_sriratnaakkineni_me/prod_sriratnaakkineni_me.ca-bundle --private-key fileb:///mnt/d/prod_sriratnaakkineni_me/server.key\
